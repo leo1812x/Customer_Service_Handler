@@ -4,8 +4,8 @@ const authToken: string = process.env.authToken!;
 const client = require('twilio')(accountSid, authToken);
 
 //* phone numbers
-const twilo_number: string = "+18777804236";
-const my_number = "+15046891609"
+const twilo_number = "+18777804236";
+const my_number = "+15046891609";
 
 // #region messages
 //* messages one person
@@ -57,24 +57,38 @@ async function fetchConversation(conversation_sid: string): Promise<string> {
         .fetch();
   
     console.log("conversation fetches, chatservice Sid:");
-    console.log(conversation.chatServiceSid);
-    console.log("\n");
+    console.log(conversation.chatServiceSid, "\n");
 
     return conversation.chat_service_sid
     
 }
-//? create participant not working rn
-async function createConversationParticipant(conversation_sid: string, number1:string, number2:string):Promise<string> {
+//? create SMS participant not working rn, need working number
+async function createConversationParticipant_SMS(conversation_sid: string, my_number:string, twilio_number:string):Promise<string> {
     const participant = await client.conversations.v1
-        .conversations(conversation_sid)
-        .participants.create({
-        "messagingBinding.address": number1,
-        "messagingBinding.proxyAddress": number2,
-        });
-  
-    console.log(participant.sid);
+    .conversations(conversation_sid)
+    .participants.create({
+      "messagingBinding.address": my_number,
+      "messagingBinding.proxyAddress": twilio_number,
+    });
+
+    console.log("SMS participant created, participant Sid:");
+    console.log(participant.sid, "\n");
+    
     return participant.sid;
 }
+
+//*create CHAT participant, uses commant at the bottom to create identity
+//twilio token:chat --identity {identity name here} --chat-service-sid ISXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX --profile leo
+
+async function createConversationParticipant_CHAT(conversation_sid:string, identity:string) {
+    const participant = await client.conversations.v1
+        .conversations(conversation_sid)
+        .participants.create({ identity: identity });
+  
+    console.log("chat participant created, participant Sid:");
+    console.log(participant.sid, "\n");
+}
+
 // #endregion conversations
 // #region TESTING
 
@@ -87,27 +101,10 @@ const conversation_sid = "CH3360df1f462e49afa24e3a4ee53ab0ce";
 const chat_service_sid = "ISfb0af8a6115e4bfdab6da3d037c29f21"; 
 
 //? not working right now, need to get a working number
-const participant_sid = await createConversationParticipant(conversation_sid, my_number, twilo_number);
+const participant_sid = await createConversationParticipant_SMS(conversation_sid, my_number, twilo_number);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//*chat participant using the sandbox/nodebox
+// const participant_sid = createConversationParticipant_CHAT(conversation_sid, "admin");
 
 
 

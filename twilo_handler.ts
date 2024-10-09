@@ -1,16 +1,14 @@
-import { sleep } from "bun";
-
-//import twilo shit and generate client
+//*import twilo shit and generate client
 const accountSid: string = process.env.accountSid!;
 const authToken: string = process.env.authToken!;
 const client = require('twilio')(accountSid, authToken);
 
-//* numbers
+//* phone numbers
 const twilo_number: string = "+18777804236";
 const my_number = "+15046891609"
 
 // #region messages
-//* only messages one person
+//* messages one person
 async function sendMsg(msg:string, recipient:string){
 await client.messages
     .create({
@@ -39,7 +37,7 @@ async function deleteMessage(Sid:string) {
 // #endregion
 // #region conversations
 
-//* conversations
+//* create a conversation, returns its Sid
 async function createConversation():Promise<string> {
   const conversation = await client.conversations.v1.conversations.create({
     friendlyName: "My First Conversation",
@@ -52,6 +50,7 @@ async function createConversation():Promise<string> {
   return conversation.sid;
 }
 
+//* fetch the conversations's chat service, returns its Sid
 async function fetchConversation(conversation_sid: string): Promise<string> {
     const conversation = await client.conversations.v1
         .conversations(conversation_sid)
@@ -64,7 +63,7 @@ async function fetchConversation(conversation_sid: string): Promise<string> {
     return conversation.chat_service_sid
     
 }
-
+//? create participant not working rn
 async function createConversationParticipant(conversation_sid: string, number1:string, number2:string):Promise<string> {
     const participant = await client.conversations.v1
         .conversations(conversation_sid)
@@ -76,9 +75,18 @@ async function createConversationParticipant(conversation_sid: string, number1:s
     console.log(participant.sid);
     return participant.sid;
 }
+// #endregion conversations
+// #region TESTING
 
-const conversation_sid = await createConversation(); //CHXXXXXXXXXXXX
-const chat_service_sid = await fetchConversation(conversation_sid); //ISXXXXXXXXXXXX
+//* exaple create new conversation with it's chat service
+// const conversation_sid = await createConversation(); //CHXXXXXXXXXXXX
+// const chat_service_sid = await fetchConversation(conversation_sid); //ISXXXXXXXXXXXX
+
+//*current for testing
+const conversation_sid = "CH3360df1f462e49afa24e3a4ee53ab0ce";
+const chat_service_sid = "ISfb0af8a6115e4bfdab6da3d037c29f21"; 
+
+//? not working right now, need to get a working number
 const participant_sid = await createConversationParticipant(conversation_sid, my_number, twilo_number);
 
 
@@ -99,7 +107,29 @@ const participant_sid = await createConversationParticipant(conversation_sid, my
 
 
 
-// #endregion conversations
+
+
+
+
+// #endregion 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

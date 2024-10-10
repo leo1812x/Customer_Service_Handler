@@ -9,7 +9,11 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@types/twilio": "^3.19.3",
     "openai": "^4.67.3",
     "twilio": "^5.3.3"
+  },
+  "scripts": {
+    "generate_token" : "twilio token:chat --identity admin --chat-service-sid ISfb0af8a6115e4bfdab6da3d037c29f21 --profile leo"
   }
 }

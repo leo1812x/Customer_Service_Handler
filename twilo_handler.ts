@@ -17,8 +17,70 @@ const CLIENT:Twilio = require('twilio')(ACCOUNT_SID, AUTH_TOKEN);
 const TWILIO_NUMBER = "+18667515235";
 const MY_NUMBER = "+15046891609";
 
-// #region TOKENS
+// #region VERIFICATION
 
+// Download the helper library from https://www.twilio.com/docs/node/install
+const twilio = require("twilio"); // Or, for ESM: import twilio from "twilio";
+
+// Find your Account SID and Auth Token at twilio.com/console
+// and set the environment variables. See http://twil.io/secure
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
+
+async function updateTollfreeVerification() {
+  const tollfreeVerification = await client.messaging.v1
+    .tollfreeVerifications("HH28e8c0262c402bc2dbc42a97de0af60b")
+    .update({
+      additionalInformation:
+        "i am a student and i am building a personal project for personal use",
+      businessCity: "New Orleans",
+      businessContactEmail: "leo1812x@gmail.com",
+      businessContactFirstName: "Leonardo",
+      businessContactLastName: "Lopez",
+      businessContactPhone: "+15046891609",
+      businessCountry: "US",
+      businessName: "Customer_Service_Handler",
+      businessPostalCode: "70065",
+      businessStateProvinceRegion: "LA",
+      businessStreetAddress: "652 Vanderbilt Ln",
+      businessStreetAddress2: "n/a",
+      businessWebsite: "https://github.com/leo1812x/Customer_Service_Handler",
+      messageVolume: "1,000",
+      notificationEmail: "leo1812x@gmail.com",
+      optInImageUrls: [
+        "https://zipwhiptestbusiness.com/images/image1.jpg",
+        "https://zipwhiptestbusiness.com/images/image2.jpg",
+      ],
+      optInType: "VERBAL",
+      productionMessageSample: "lorem ipsum",
+      useCaseCategories: ["TWO_FACTOR_AUTHENTICATION", "MARKETING"],
+      useCaseSummary:
+        "",
+    });
+
+  console.log(tollfreeVerification.sid);
+}
+
+updateTollfreeVerification();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// #enregion
+// #region TOKENS
 
 /**
  * Creates a new ChatGrant with the specified service SID.

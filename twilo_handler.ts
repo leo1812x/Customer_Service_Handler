@@ -62,20 +62,7 @@ async function updateTollfreeVerification() {
   console.log(tollfreeVerification.sid);
 }
 
-updateTollfreeVerification();
-
-
-
-
-
-
-
-
-
-
-
-
-
+// updateTollfreeVerification();
 
 
 
@@ -506,23 +493,3 @@ await delete_all_conversations();
 
 let test = new Twilio_Conversation_Double("test_conversation_double");
 await test.intialize(MY_NUMBER, "+15046891608");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

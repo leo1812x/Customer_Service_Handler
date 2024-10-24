@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import type { Stream } from "openai/streaming.mjs";
 const key = process.env.OPENAI_KEY;
 const openai = new OpenAI({ apiKey: key });
 
@@ -26,15 +27,19 @@ const return_name_stored_schema: OpenAI.FunctionDefinition = {
     },
     strict: true,
 }
-async function return_name_stored(password_1: string, password_2: string): Promise<string> {    
+async function return_name_stored(password_1: string, password_2: string): Promise<string> {
     if (password_1 === "123" && password_2 === "456") {
         return "leo";
     }
+
+    if (password_1 === "leo" && password_2 === "leo") {
+        return "leopoldo";
+    }
+
     return "wrong password";
 }
 
 // #region ASSISTANT
-
 /**
  * Creates an assistant using OpenAI's beta API.
  * The assistant is configured as a personal math tutor with the ability to write and run code.
@@ -57,6 +62,19 @@ async function create_asistant(): Promise<OpenAI.Beta.Assistant> {
     return assistant;
 }
 
+
+/**
+ * Deletes an assistant using OpenAI's beta API.
+ * @param {string} assistantId - The ID of the assistant to delete.
+ * @returns {Promise<void>} A promise that resolves when the assistant is deleted.
+ */
+async function delete_assistant(assistant: OpenAI.Beta.Assistants.Assistant): Promise<void> {
+    await openai.beta.assistants.del(assistant.id);
+    console.log("asistant deleted");
+}
+
+//#region THREADS - MESSAGES
+
 /**
  * Creates a thread using OpenAI's beta API.
  * @returns {Promise<OpenAI.Beta.Threads.Thread>} A promise that resolves to the created thread.
@@ -74,7 +92,7 @@ async function create_thread(): Promise<OpenAI.Beta.Threads.Thread> {
  * @param msg - The content of the message to be added to the thread.
  * @returns A promise that resolves to the created message, which is an instance of `OpenAI.Beta.Threads.Messages.Message`.
  */
-async function add_message_thread(thread: OpenAI.Beta.Threads.Thread, msg: string): Promise<OpenAI.Beta.Threads.Messages.Message> {
+async function send_message_thread(thread: OpenAI.Beta.Threads.Thread, msg: string): Promise<OpenAI.Beta.Threads.Messages.Message> {
     const message = await openai.beta.threads.messages.create(
         thread.id,
         {
@@ -86,90 +104,35 @@ async function add_message_thread(thread: OpenAI.Beta.Threads.Thread, msg: strin
     return message;
 }
 
+//#region RUN
+
 /**
- * Deletes an assistant using OpenAI's beta API.
- * @param {string} assistantId - The ID of the assistant to delete.
- * @returns {Promise<void>} A promise that resolves when the assistant is deleted.
+ * Creates and initiates a run for a given thread and assistant using the OpenAI API.
+ *
+ * @param threadId - The ID of the thread for which the run is to be created.
+ * @param assistantId - The ID of the assistant to be used for the run.
+ * @returns A promise that resolves to a stream of `OpenAI.Beta.Assistants.AssistantStreamEvent`.
  */
-async function delete_assistant(assistant: OpenAI.Beta.Assistants.Assistant): Promise<void> {
-    await openai.beta.assistants.del(assistant.id);
-    console.log("asistant deleted");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-async function create_run(threadId: string, assistantId: string) {
+async function create_run(threadId: string, assistantId: string):Promise<Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>> {
     //* create the run from OpenAI API
     const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id: assistantId,
         stream: true
     });
+    console.log("Run initiated");
 
-    console.log("Run initiated successfully");
-
-    //* iterate over each event
-    for await (const event of run) {
-        if (event.event === "thread.run.requires_action" && event.data.required_action?.type === "submit_tool_outputs") {
-            
-            //* grab the tools calls when the run request them
-            let tool_calls = Object.values(event.data.required_action.submit_tool_outputs.tool_calls);
-
-            //* initialize array for outputs
-
-            let outputs: {
-                output: string,
-                tool_call_id:string
-            }[] = []
-
-            //* iterate the tool calls
-            for (let i = 0; i < tool_calls.length; i++){
-                //* grab required data from each call
-                console.log(tool_calls[i]);
-                const toolCall = event.data.required_action.submit_tool_outputs.tool_calls[i];
-                const toolCallId = toolCall.id;
-                const functionName = toolCall.function.name; // Get the function name
-
-                //* parse arguments
-                const functionArgs = toolCall.function.arguments;  // Arguments as a JSON string
-                const parsed_function_args = JSON.parse(functionArgs);
-                const args: string[] = Object.values(parsed_function_args);   
-                
-                //* save all outputs
-                outputs.push(await handle_function_call(toolCallId, functionName, ...args));
-            }
-
-            //* submit all outputs
-            await submit_tool_outputs(threadId, event.data.id, tool_calls, ...outputs)
-        }
-
-        if (event.event === "thread.run.completed") {
-            console.log("Run finished successfully");
-            break;
-        }
-    }
+    return run;
 }
 
-async function handle_function_call(tool_call_id: string, functionName:string, ...args:string[]):Promise<{output: string,tool_call_id:string}> {
+
+/**
+ * Handles the function call by invoking the appropriate function based on the provided function name.
+ * @param tool_call_id - The unique identifier for the tool call.
+ * @param functionName - The name of the function to be called.
+ * @param args - The arguments to be passed to the function.
+ * @returns A promise that resolves to an object containing the output of the function call and the tool call ID.
+ */
+async function handle_function_call(tool_call_id: string, functionName: string, ...args: string[]): Promise<{ output: string, tool_call_id: string }> {
 
     let output = "";
 
@@ -177,52 +140,144 @@ async function handle_function_call(tool_call_id: string, functionName:string, .
     switch (functionName) {
         case "return_name_stored":
             output = await return_name_stored(args[0], args[1]);
-        break;
-    
+            break;
+
         default:
-        break;
+            break;
     }
-    return {output, tool_call_id};
+    return { output, tool_call_id };
 }
 
 
-async function submit_tool_outputs(threadId: string, runId: string, tool_calls: OpenAI.Beta.Threads.Runs.RequiredActionFunctionToolCall[], ...outputs: { output: string, tool_call_id: string }[]) {
+/**
+ * Submits the outputs of tool calls to a specified thread and run in OpenAI's system.
+ *
+ * @param threadId - The ID of the thread to which the tool outputs are being submitted.
+ * @param runId - The ID of the run within the thread.
+ * @param tool_calls - An array of tool calls that are required for the action function.
+ * @param outputs - An array of objects containing the output and the corresponding tool call ID.
+ * @returns A promise that resolves to a stream of assistant stream events.
+ */
+async function submit_tool_outputs(threadId: string, runId: string, tool_calls: OpenAI.Beta.Threads.Runs.RequiredActionFunctionToolCall[], ...outputs: { output: string, tool_call_id: string }[]): Promise<Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>> {
     const tool_outputs = outputs.map(output => ({
         tool_call_id: output.tool_call_id,
         output: output.output,
     }));
 
-    await openai.beta.threads.runs.submitToolOutputs(
+    const new_run = await openai.beta.threads.runs.submitToolOutputs(
         threadId,
         runId,
         {
             tool_outputs: tool_outputs,
-        }
+            stream: true
+        },
     );
-    console.log("Tool outputs submitted successfully:", tool_outputs);
+    // console.log("Tool outputs submitted successfully:", tool_outputs);
+
+    return new_run;
 }
 
-// Example: Submit tool outputs when required
+async function run_run(run:Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>, thread_id: string) {
+    
+    //* iterate over each event
+    for await (const event of run) {
 
+        //* if the run requires tool calls then: 
+        if (event.event === "thread.run.requires_action" && event.data.required_action?.type === "submit_tool_outputs") {
 
-/**
- * Adds a function to an existing assistant.
- *
- * @param assistant - The assistant to which the function will be added. This should be an instance of `OpenAI.Beta.Assistant`.
- * @param functionDefinition - The function definition to be added.
- * @returns A promise that resolves when the function is added.
- */
-async function add_function_to_assistant(assistant: OpenAI.Beta.Assistant, functionDefinition: OpenAI.FunctionDefinition): Promise<void> {
-    try {
-        await openai.beta.assistants.update(assistant.id, functionDefinition);
-        console.log("Function added to assistant successfully");
-    } catch (error) {
-        console.error("Error adding function to assistant:", error);
+            //* grab the tool calls the run gives me
+            let tool_calls = Object.values(event.data.required_action.submit_tool_outputs.tool_calls);
+
+            //* initialize array for outputs
+            let outputs: {
+                output: string,
+                tool_call_id: string
+            }[] = []
+
+            //* iterate the tool calls
+            for (let i = 0; i < tool_calls.length; i++) {
+                //* grab required data from each call
+                // console.log(tool_calls[i]);
+                const toolCall = event.data.required_action.submit_tool_outputs.tool_calls[i];
+                const toolCallId = toolCall.id;
+                const functionName = toolCall.function.name; // Get the function name
+
+                //* parse arguments
+                const functionArgs = toolCall.function.arguments;  // Arguments as a JSON string
+                const parsed_function_args = JSON.parse(functionArgs);
+                const args: string[] = Object.values(parsed_function_args);
+
+                //* save all outputs
+                outputs.push(await handle_function_call(toolCallId, functionName, ...args));
+            }
+
+            //* submit all outputs and get the new run
+            const new_run = await submit_tool_outputs(thread_id, event.data.id, tool_calls, ...outputs);
+            
+            //*start over with new run
+            await run_run(new_run, thread_id)
+            break;            
+        }
+
+        if (event.event === "thread.run.completed") {
+            console.log("thread run completed");
+            await fetch_thread(thread_id)
+            break;
+        }
     }
 }
 
+//#region MESSSAGES
 
-//#region Classes
+/**
+ * Fetches the last message from a thread using OpenAI's beta API.
+ * @param thread_id - The ID of the thread from which to fetch the last message.
+ * @returns A promise that resolves to the content of the last message as a string.
+ */
+async function fetch_last_message_thread(thread_id: string): Promise<string> {
+    //* fetches all messages
+    const threadMessages = await openai.beta.threads.messages.list(thread_id);
+
+    //* fetches last message
+    if (threadMessages.data[0].content[0].type === "text") {
+        return threadMessages.data[0].content[0].text.value;
+    }
+
+    return "something is broken in fetch_message";
+}
+
+/**
+ * Fetches and prints all messages from a thread using OpenAI's beta API.
+ * @param thread_id - The ID of the thread from which to fetch all messages.
+ * @returns A promise that resolves when all messages have been printed.
+ */
+async function fetch_thread(thread_id: string): Promise<void> {
+    //* fetches all messages
+    const threadMessages = await openai.beta.threads.messages.list(
+        thread_id,
+        {
+            order: "asc"
+        }
+    );
+
+    //* prints all messages
+    threadMessages.data.forEach((message, index) => {
+        console.log(`Message ${index + 1}:`);
+        message.content.forEach(content => {
+            if (content.type === "text") {
+                console.log(content.text.value);
+            }
+        });
+    });
+}
+
+
+
+
+
+
+
+//#region CLASSES
 class OpenAI_Asistant {
     asistant?: OpenAI.Beta.Assistant
     thread?: OpenAI.Beta.Threads.Thread
@@ -241,7 +296,7 @@ class OpenAI_Asistant {
 
     async add_message(msg: string) {
         if (this.thread) {
-            await add_message_thread(await this.thread, msg)
+            await send_message_thread(await this.thread, msg)
         }
         else {
             console.log("no thread has been created for this assistant");
@@ -259,7 +314,8 @@ class OpenAI_Asistant {
 
     async run() {
         if (this.asistant && this.thread) {
-            await create_run(this.thread.id, this.asistant.id)
+            const run = await create_run(this.thread.id, this.asistant.id);
+            await run_run(run, this.thread.id)
         }
         else {
             console.log("need to initialize and create thread first");
@@ -277,9 +333,10 @@ let my_assistant = new OpenAI_Asistant()
 let assistant_object = await my_assistant.initialize();
 let thread = await my_assistant.create_thread();
 // let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456.")
-let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123")
-await my_assistant.run();
+// let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123");
+let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123. finally, if you are able to fetch the name, use the name in the same function (use it as password_1 & password_2) to get a secret name");
 
+await my_assistant.run();
 
 await my_assistant.delete_assistant()
 

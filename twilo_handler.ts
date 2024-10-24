@@ -1,9 +1,7 @@
 import { sleep } from "bun";
-import type { webhook } from "twilio";
 import AccessToken, { ChatGrant } from "twilio/lib/jwt/AccessToken";
 import type { ConversationInstance } from "twilio/lib/rest/conversations/v1/conversation";
 import { ParticipantInstance } from "twilio/lib/rest/conversations/v1/conversation/participant";
-import type { WebhookInstance } from "twilio/lib/rest/numbers/v1/webhook";
 import type Twilio from "twilio/lib/rest/Twilio";
 
 //*import twilo shit and generate client

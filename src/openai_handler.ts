@@ -42,8 +42,7 @@ async function return_name_stored(password_1: string, password_2: string): Promi
 // #region ASSISTANT
 /**
  * Creates an assistant using OpenAI's beta API.
- * The assistant is configured as a personal math tutor with the ability to write and run code.
- * @returns {Promise<OpenAI.Beta.Assistant>} A promise that resolves to the created assistant.
+ * @returns {Promise<OpenAI.Beta.Assistant>} the created assistant.
  */
 async function create_asistant(): Promise<OpenAI.Beta.Assistant> {
     const assistant = await openai.beta.assistants.create({
@@ -65,7 +64,7 @@ async function create_asistant(): Promise<OpenAI.Beta.Assistant> {
 
 /**
  * Deletes an assistant using OpenAI's beta API.
- * @param {string} assistantId - The ID of the assistant to delete.
+ * @param {OpenAI.Beta.Assistants.Assistant} assistant - The assistant object to delete
  * @returns {Promise<void>} A promise that resolves when the assistant is deleted.
  */
 async function delete_assistant(assistant: OpenAI.Beta.Assistants.Assistant): Promise<void> {
@@ -73,7 +72,7 @@ async function delete_assistant(assistant: OpenAI.Beta.Assistants.Assistant): Pr
     console.log("asistant deleted");
 }
 
-//#region THREADS - MESSAGES
+//#region THREADS
 
 /**
  * Creates a thread using OpenAI's beta API.
@@ -177,6 +176,12 @@ async function submit_tool_outputs(threadId: string, runId: string, tool_calls: 
     return new_run;
 }
 
+/**
+ * Handles the execution of a stream of OpenAI Assistant events, processing tool calls and submitting outputs as required.
+ * 
+ * @param run - A stream of OpenAI Assistant events.
+ * @param thread_id - The ID of the thread being processed.
+ */
 async function run_run(run:Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>, thread_id: string) {
     
     //* iterate over each event
@@ -215,13 +220,13 @@ async function run_run(run:Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>, 
             const new_run = await submit_tool_outputs(thread_id, event.data.id, tool_calls, ...outputs);
             
             //*start over with new run
-            await run_run(new_run, thread_id)
+            await run_run(new_run, thread_id);
             break;            
         }
 
         if (event.event === "thread.run.completed") {
             console.log("thread run completed");
-            await fetch_thread(thread_id)
+            await fetch_thread(thread_id);
             break;
         }
     }
@@ -271,29 +276,36 @@ async function fetch_thread(thread_id: string): Promise<void> {
     });
 }
 
-
-
-
-
-
-
 //#region CLASSES
-class OpenAI_Asistant {
+export class OpenAI_Asistant {
     asistant?: OpenAI.Beta.Assistant
     thread?: OpenAI.Beta.Threads.Thread
 
     constructor() { }
 
+    /**
+     * Initializes the OpenAI assistant.
+     * @returns {Promise<OpenAI.Beta.Assistants.Assistant>} A promise that resolves to an instance of the OpenAI assistant.
+     */
     async initialize(): Promise<OpenAI.Beta.Assistants.Assistant> {
         let asistant = await create_asistant();
         this.asistant = asistant;
         return asistant;
     }
 
+    /**
+     * Asynchronously creates a new thread and assigns it to the instance's `thread` property.
+     */
     async create_thread() {
         this.thread = await create_thread();
     }
 
+    /**
+     * Adds a message to the current thread if it exists.
+     * @param msg - The message to be added to the thread.
+     * @returns A promise that resolves when the message has been sent.
+     * @throws Will log an error message if no thread has been created for this assistant.
+     */
     async add_message(msg: string) {
         if (this.thread) {
             await send_message_thread(await this.thread, msg)
@@ -303,6 +315,15 @@ class OpenAI_Asistant {
         }
     }
 
+    /**
+     * Deletes the current assistant if it exists.
+     * 
+     * This method checks if an assistant instance is present. If it is, it calls the `delete_assistant` function
+     * to delete the assistant. If no assistant instance is found, it logs a message indicating that the assistant
+     * cannot be deleted because it hasn't been created.
+     * 
+     * @returns {Promise<void>} A promise that resolves when the assistant is deleted or the log message is printed.
+     */
     async delete_assistant() {
         if (this.asistant) {
             await delete_assistant(this.asistant)
@@ -312,7 +333,19 @@ class OpenAI_Asistant {
         }
     }
 
-    async run() {
+    /**
+     * Executes the assistant's run process if both the assistant and thread are initialized.
+     * 
+     * This method checks if the `asistant` and `thread` properties are set. If they are,
+     * it creates a run using the `create_run` function with the thread's ID and assistant's ID,
+     * and then executes the run using the `run_run` function with the created run and thread's ID.
+     * 
+     * If either the `asistant` or `thread` properties are not set, it logs a message indicating
+     * that initialization and thread creation are required.
+     * 
+     * @returns {Promise<void>} A promise that resolves when the run process is complete.
+     */
+    async run(): Promise<void> {
         if (this.asistant && this.thread) {
             const run = await create_run(this.thread.id, this.asistant.id);
             await run_run(run, this.thread.id)
@@ -322,23 +355,39 @@ class OpenAI_Asistant {
         }
     }
 
+    async fetch_last_message_thread():Promise<string>{
+        if (this.thread?.id){
+            const last_message = await fetch_last_message_thread(this.thread?.id);
+            return last_message;
+        }
+        console.log("this open_ai assistant doesnt have a thread");
+        throw new Error("this assistant has no thread");
+        
+    }
 
+    async fetch_thread(){
+        if (this.thread?.id){
+            const thread = await fetch_thread(this.thread?.id);
+            return thread;
+        }
+        console.log("this open_ai assistant doesnt have a thread");
+    }
 }
 
 
 // #region TESTING
 
 
-let my_assistant = new OpenAI_Asistant()
-let assistant_object = await my_assistant.initialize();
-let thread = await my_assistant.create_thread();
-// let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456.")
-// let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123");
-let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123. finally, if you are able to fetch the name, use the name in the same function (use it as password_1 & password_2) to get a secret name");
+// let my_assistant = new OpenAI_Asistant()
+// let assistant_object = await my_assistant.initialize();
+// let thread = await my_assistant.create_thread();
+// // let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456.")
+// // let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123");
+// let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123. finally, if you are able to fetch the name, use the name in the same function (use it as password_1 & password_2) to get a secret name");
 
-await my_assistant.run();
+// await my_assistant.run();
 
-await my_assistant.delete_assistant()
+// await my_assistant.delete_assistant()
 
 
 

@@ -4,7 +4,6 @@ import type { ConversationInstance } from "twilio/lib/rest/conversations/v1/conv
 import type { MessageInstance } from "twilio/lib/rest/conversations/v1/conversation/message";
 import { ParticipantInstance } from "twilio/lib/rest/conversations/v1/conversation/participant";
 import type Twilio from "twilio/lib/rest/Twilio";
-import { twilio_logger } from "./winston_handler";
 
 //*import twilo shit and generate client
 const ACCOUNT_SID = process.env.ACCOUNT_SID!;
@@ -51,7 +50,7 @@ async function updateTollfreeVerification() {
         "",
     });
 
-  twilio_logger.level_1(tollfreeVerification.sid);
+  console.log(tollfreeVerification.sid);
 }
 
 // updateTollfreeVerification();
@@ -69,7 +68,7 @@ async function updateTollfreeVerification() {
 async function create_grant(chat_service_sid:string):Promise<ChatGrant> {
 
     let grant = new ChatGrant({serviceSid: chat_service_sid});
-    twilio_logger.level_1("grant created");
+    console.log("grant created");
 
     return grant;
 }
@@ -111,7 +110,7 @@ async function create_conversation(friendly_name: string):Promise<ConversationIn
 
             //* if conversation already exists
             if (conversation.friendlyName === friendly_name){
-                twilio_logger.level_1(`${conversation.sid} Conversation already exists`);
+                console.log(`${conversation.sid} Conversation already exists`);
 
                 //* fetch and return conversation
                 return conversation;
@@ -123,7 +122,7 @@ async function create_conversation(friendly_name: string):Promise<ConversationIn
     let conversation_instance = await CLIENT.conversations.v1.conversations.create({
         friendlyName: friendly_name,
     });
-    twilio_logger.level_1(`${conversation_instance.sid} coversation created`);
+    console.log(`${conversation_instance.sid} coversation created`);
     return conversation_instance;
 }
 
@@ -142,7 +141,7 @@ async function create_conversation_participant_SMS(conversation_sid: string, num
       "messagingBinding.proxyAddress": twilio_number,
     });
 
-    twilio_logger.level_1(`${participant.sid} SMS participant created`); 
+    console.log(`${participant.sid} SMS participant created`); 
     return participant;
 }
 
@@ -165,7 +164,7 @@ async function create_conversation_participant_CHAT(conversation_sid:string, ide
 
             //* if participant already exists
             if (participant.identity === identity){
-                twilio_logger.level_1(`${participant.sid} participant already exists`);
+                console.log(`${participant.sid} participant already exists`);
 
                 //* return participant     
                 return participant;
@@ -177,7 +176,7 @@ async function create_conversation_participant_CHAT(conversation_sid:string, ide
         .conversations(conversation_sid)
         .participants.create({ identity: identity });
   
-    twilio_logger.level_1(`${participant.sid} chat participant created`);
+    console.log(`${participant.sid} chat participant created`);
     return participant;
 }
 
@@ -193,7 +192,7 @@ async function fetch_Conversation(conversation_sid: string): Promise<Conversatio
         .conversations(conversation_sid)
         .fetch();
 
-    twilio_logger.level_1(conversation.sid + " conversation was fetched");
+    console.log(conversation.sid + " conversation was fetched");
     return conversation;
 }
 
@@ -208,7 +207,7 @@ async function fetch_list_participants(conversation_sid: string): Promise<Partic
     .conversations(conversation_sid)
     .participants.list({ limit: 20 });
 
-    twilio_logger.level_1(participants.length + " participants fetched from: " + conversation_sid);
+    console.log(participants.length + " participants fetched from: " + conversation_sid);
     return participants; 
 }
 
@@ -225,7 +224,7 @@ async function fetch_conversation_participant(conversation_sid: string, identity
         .participants(identity)
         .fetch();
   
-        twilio_logger.level_1(`${participant.sid} participant fetched`);
+        console.log(`${participant.sid} participant fetched`);
         return participant;
 }
 
@@ -236,7 +235,7 @@ async function fetch_conversation_participant(conversation_sid: string, identity
 async function fetch_list_Conversations(): Promise<ConversationInstance[]> {
     let conversations:ConversationInstance[] = await CLIENT.conversations.v1.conversations.list();
         
-    twilio_logger.level_1(`${conversations.length} fetched conversations`); 
+    console.log(`${conversations.length} fetched conversations`); 
     return conversations;
 }
 
@@ -248,7 +247,7 @@ async function delete_conversation(conversationSid: string) {
     try {
         let x = await fetch_Conversation(conversationSid);
         await CLIENT.conversations.v1.conversations(conversationSid).remove();
-        twilio_logger.level_1(`Conversation ${x.sid} has been deleted.`);
+        console.log(`Conversation ${x.sid} has been deleted.`);
     } catch (error) {
         console.error('Error deleting conversation:', error);
     }
@@ -265,11 +264,11 @@ async function delete_all_conversations(): Promise<void> {
         for (const conversation of conversations) {
             await delete_conversation(conversation.sid);
         }
-        twilio_logger.level_1("all conversations have been deleted");
+        console.log("all conversations have been deleted");
         return;
     }
 
-    twilio_logger.level_1("no conversation to be deleted");
+    console.log("no conversation to be deleted");
 }
 
 /**
@@ -287,7 +286,7 @@ async function send_message(conversation_sid:string, author:string, body:string)
             body: body,      // The message content
         });
 
-    twilio_logger.level_1(`message: ${message.body} sent`);
+    console.log(`message: ${message.body} sent`);
     return;
 }
 
@@ -304,7 +303,7 @@ async function delete_participant(conversationSid: string, participantSid: strin
             .participants(participantSid)
             .remove();
 
-        twilio_logger.level_1(`${participantSid} participant has been removed from conversation ${conversationSid}.`);
+        console.log(`${participantSid} participant has been removed from conversation ${conversationSid}.`);
         return;
     } catch (error) {
         console.error('Error removing participant:', error);
@@ -328,7 +327,7 @@ async function create_whatsapp_message(body:string, number_from:string, number_t
         to: number_to,
     });
     
-      twilio_logger.level_1("whatsapp message sent");
+      console.log("whatsapp message sent");
 }
 
 
@@ -343,7 +342,7 @@ async function fetch_whole_conversation(conversation_sid:string, limit: number):
     .conversations(conversation_sid)
     .messages.list({ limit: limit });
 
-    twilio_logger.level_1("whatsapp conversation fetched");
+    console.log("whatsapp conversation fetched");
     return messages;
 }
 
@@ -361,7 +360,7 @@ async function fetch_last_message(conversation_Sid:string, limit: number):Promis
       limit: limit,
     });
 
-    twilio_logger.level_1("last message fetched");
+    console.log("last message fetched");
     return messages[0]
 }
 
@@ -384,7 +383,7 @@ export class TwilioBot{
      */
     async initialize() {          
         this.sid = (await create_conversation_participant_CHAT(this.conversation_Sid, this.identity)).sid;
-        twilio_logger.level_2(this.sid + " TwilioBot is initialized");
+        console.log(this.sid + " TwilioBot is initialized");
     }
 
     /**
@@ -398,7 +397,7 @@ export class TwilioBot{
 
         await send_message(this.conversation_Sid, this.identity, body);
         
-        twilio_logger.level_2("message sent");
+        console.log("message sent");
         return
     }
 
@@ -409,7 +408,7 @@ export class TwilioBot{
     async get(): Promise<ParticipantInstance>{
         let participant = await fetch_conversation_participant(this.conversation_Sid, this.identity);
 
-        twilio_logger.level_2(`${this.sid} participant was getted`);
+        console.log(`${this.sid} participant was getted`);
         return participant;
     }
 
@@ -426,7 +425,7 @@ export class TwilioBot{
         //* get service_sid
         let service_sid = await (await fetch_Conversation(this.conversation_Sid)).chatServiceSid 
         
-        twilio_logger.level_2("access token created");
+        console.log("access token created");
         
         create_accessToken(ACCOUNT_SID, API_KEY, API_KEY_SECRET, this.identity, service_sid);   
     }
@@ -449,7 +448,7 @@ export class Twilio_Conversation{
     async initialize(){
         //? move this functionality to createConversation
         this.sid = (await create_conversation(this.name)).sid;
-        twilio_logger.level_2(this.sid + " conversation is initialized");
+        console.log(this.sid + " conversation is initialized");
     }
 
     /**
@@ -459,7 +458,7 @@ export class Twilio_Conversation{
     async get(): Promise<ConversationInstance>{      
         let x = await fetch_Conversation(this.sid);
 
-        twilio_logger.level_2(x.sid + " conversation was getted");
+        console.log(x.sid + " conversation was getted");
         return x;
     }
 
@@ -472,7 +471,7 @@ export class Twilio_Conversation{
         let bot = new TwilioBot(this.sid, identity);
         await bot.initialize();
 
-        twilio_logger.level_2("bot created");
+        console.log("bot created");
         return bot;
     }
 
@@ -484,7 +483,7 @@ export class Twilio_Conversation{
     async create_SMS_participant(participant_number:string):Promise<ParticipantInstance>{
         let instance = await create_conversation_participant_SMS(this.sid, participant_number, TWILIO_NUMBER);
 
-        twilio_logger.level_2("SMS participant created");
+        console.log("SMS participant created");
         return instance;
     }
 
@@ -495,7 +494,7 @@ export class Twilio_Conversation{
     async delete_conversation(){
         delete_conversation(this.sid);
 
-        twilio_logger.level_2("conversation deleted");
+        console.log("conversation deleted");
         return;
     }
 
@@ -506,7 +505,7 @@ export class Twilio_Conversation{
     async fetch_all_messages():Promise<MessageInstance[]>{
         const messages = await fetch_whole_conversation(this.sid, 10);
 
-        twilio_logger.level_2("messages fetched")
+        console.log("messages fetched")
         return messages
     }
 
@@ -514,16 +513,17 @@ export class Twilio_Conversation{
     async fetch_last_message():Promise<MessageInstance> {
         const message = await fetch_last_message(this.sid, 1);
 
-        twilio_logger.level_2("last message fetched");
+        console.log("last message fetched");
         return message;
     }
 
     async find_sms_participant(){
         const x = await fetch_list_participants(this.sid);
-        for (let i = 0; x.length; i++){
+        for (let i = 0; i < x.length; i++){
             console.log(x[i]);
+
+            if (i > 10)break;
         }
-        
     }
 }
 
@@ -592,5 +592,5 @@ export class Twilio_Conversation_Double{
 
 
 
-// await delete_all_conversations();
+await delete_all_conversations();
 

@@ -1,7 +1,6 @@
 import { serve } from 'bun';
 import { OpenAI_Asistant } from './src/openai_handler';
 import { Twilio_Conversation, type TwilioBot } from './src/twilo_handler';
-import { twilio_logger as logger } from './src/winston_handler';
 
 
 //#region CLASSES
@@ -13,20 +12,20 @@ class Monster_Class {
 	constructor(){}
 
 	async initialize(sms_number:string){
-		logger.test("INITIALIZE STARTED");
+		console.log("INITIALIZE STARTED");
 
 		//* create openAI assistant and thread
 		this.openAI_assistant = new OpenAI_Asistant();
 		await this.openAI_assistant.initialize();
 		await this.openAI_assistant.create_thread();
 
-		logger.test("OPENAI ASISTANT CREATED");
+		console.log("OPENAI ASISTANT CREATED");
 
 		//* create twilio conversation
 		this.twilio_conversation = new Twilio_Conversation("conversation for test");
 		await this.twilio_conversation.initialize();
 
-		logger.test("twilio conversation created");
+		console.log("twilio conversation created");
 
 		//* add SMS participant and bot to conversation
 		const participant = await this.twilio_conversation.create_SMS_participant(sms_number);
@@ -58,21 +57,14 @@ class Monster_Class {
 		await this.twilio_conversation.find_sms_participant();
 	}
 }
-
-
 //#region TESTING
 
 
-logger.test("region TEST index starts");
+console.log("region TEST index starts");
 
 let monster = new Monster_Class();
 await monster.initialize("+15046891609");
-logger.test("monster initialized");
-
-
-
-
-
+console.log("monster initialized");
 
 
 //#region SERVER
@@ -83,7 +75,6 @@ const server = serve({
 		const url = new URL(req.url);
 
 		console.log("Received request: ", req.method, url.pathname);
-		console.log("Expected request: ", req.method, "/webhook");
 
 		//? i need to validate the request before i deploy
 		//* if /webhook
@@ -100,9 +91,8 @@ const server = serve({
 			const author = data_object.Author;
 
 			//*if no conversation with author, create
-			const new_ = new Monster_Class();
-			await new_.initialize(author);
-
+			// const new_ = new Monster_Class();
+			// await new_.initialize(author);
 			
 
 			//* if messageAdded

@@ -4,6 +4,7 @@ import type { ConversationInstance } from "twilio/lib/rest/conversations/v1/conv
 import type { MessageInstance } from "twilio/lib/rest/conversations/v1/conversation/message";
 import { ParticipantInstance } from "twilio/lib/rest/conversations/v1/conversation/participant";
 import type Twilio from "twilio/lib/rest/Twilio";
+import { QuickLogger } from "./logging";
 
 //*import twilo shit and generate client
 const ACCOUNT_SID = process.env.ACCOUNT_SID!;
@@ -12,46 +13,57 @@ const API_KEY = process.env.API_KEY!;
 const API_KEY_SECRET = process.env.API_KEY_SECRET!;
 const CLIENT:Twilio = require('twilio')(ACCOUNT_SID, AUTH_TOKEN);
 
-//* phone numbers
-
+//* import phone numbers
 const TWILIO_NUMBER = process.env.TWILIO_NUMBER!
 const MY_NUMBER = process.env.MY_NUMBER!
+
+//* environment variables check
+if (!ACCOUNT_SID || !AUTH_TOKEN || !API_KEY || !API_KEY_SECRET || !TWILIO_NUMBER || !MY_NUMBER) {
+    throw new Error("Missing required environment variables.");
+}
+
+
+//* logger
+let logger = new QuickLogger("level_1");
+
 
 // #region VERIFICATION
 
 async function updateTollfreeVerification() {
-  const tollfreeVerification = await CLIENT.messaging.v1
-    .tollfreeVerifications("HH28e8c0262c402bc2dbc42a97de0af60b")
-    .update({
-      additionalInformation:
-        "i am a student and i am building a personal project for personal use",
-      businessCity: "New Orleans",
-      businessContactEmail: "leo1812x@gmail.com",
-      businessContactFirstName: "Leonardo",
-      businessContactLastName: "Lopez",
-      businessContactPhone: "+15046891609",
-      businessCountry: "US",
-      businessName: "Customer_Service_Handler",
-      businessPostalCode: "70065",
-      businessStateProvinceRegion: "LA",
-      businessStreetAddress: "652 Vanderbilt Ln",
-      businessStreetAddress2: "n/a",
-      businessWebsite: "https://github.com/leo1812x/Customer_Service_Handler",
-      messageVolume: "1,000",
-      notificationEmail: "leo1812x@gmail.com",
-      optInImageUrls: [
-        "https://zipwhiptestbusiness.com/images/image1.jpg",
-        "https://zipwhiptestbusiness.com/images/image2.jpg",
-      ],
-      optInType: "VERBAL",
-      productionMessageSample: "lorem ipsum",
-      useCaseCategories: ["TWO_FACTOR_AUTHENTICATION", "MARKETING"],
-      useCaseSummary:
-        "",
-    });
-
-  console.log(tollfreeVerification.sid);
+    try {
+        const tollfreeVerification = await CLIENT.messaging.v1
+            .tollfreeVerifications("HH28e8c0262c402bc2dbc42a97de0af60b")
+            .update({
+                additionalInformation: "I am a student and building a personal project for personal use",
+                businessCity: "New Orleans",
+                businessContactEmail: "leo1812x@gmail.com",
+                businessContactFirstName: "Leonardo",
+                businessContactLastName: "Lopez",
+                businessContactPhone: "+15046891609",
+                businessCountry: "US",
+                businessName: "Customer_Service_Handler",
+                businessPostalCode: "70065",
+                businessStateProvinceRegion: "LA",
+                businessStreetAddress: "652 Vanderbilt Ln",
+                businessStreetAddress2: "n/a",
+                businessWebsite: "https://github.com/leo1812x/Customer_Service_Handler",
+                messageVolume: "1,000",
+                notificationEmail: "leo1812x@gmail.com",
+                optInImageUrls: [
+                    "https://zipwhiptestbusiness.com/images/image1.jpg",
+                    "https://zipwhiptestbusiness.com/images/image2.jpg",
+                ],
+                optInType: "VERBAL",
+                productionMessageSample: "lorem ipsum",
+                useCaseCategories: ["TWO_FACTOR_AUTHENTICATION", "MARKETING"],
+                useCaseSummary: "",
+            });
+        logger.level_1(tollfreeVerification.sid);
+    } catch (error) {
+        throw new Error("Missing required environment variables.");
+    }
 }
+
 
 // updateTollfreeVerification();
 
@@ -65,13 +77,17 @@ async function updateTollfreeVerification() {
  * @param chat_service_sid - The SID of the service for which the grant is being created.
  * @returns A promise that resolves to a new ChatGrant object.
  */
-async function create_grant(chat_service_sid:string):Promise<ChatGrant> {
-
-    let grant = new ChatGrant({serviceSid: chat_service_sid});
-    console.log("grant created");
-
-    return grant;
+async function create_grant(chat_service_sid: string): Promise<ChatGrant> {
+    try {
+        const grant = new ChatGrant({ serviceSid: chat_service_sid });
+        logger.level_1("Grant created");
+        return grant;
+    } catch (error) {
+        console.error("Error creating grant:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 /**
  * Creates an access token for Twilio services.
@@ -82,14 +98,26 @@ async function create_grant(chat_service_sid:string):Promise<ChatGrant> {
  * @param chat_service_sid - the Sid of the chat service
  * @returns A promise that resolves to an AccessToken object.
  */
-async function create_accessToken(account_sid:string, api_key:string, api_key_seceret:string, identity:string, chat_service_sid:string):Promise<AccessToken> {
-
-    let token = new AccessToken(account_sid, api_key, api_key_seceret, {identity});
-    token.addGrant(await create_grant(chat_service_sid));
-
-    console.log(token.toJwt());
-    return token;
+async function create_accessToken(
+    account_sid: string,
+    api_key: string,
+    api_key_secret: string,
+    identity: string,
+    chat_service_sid: string
+): Promise<AccessToken> {
+    try {
+        const token = new AccessToken(account_sid, api_key, api_key_secret, { identity });
+        const grant = await create_grant(chat_service_sid);
+        token.addGrant(grant);
+        
+        logger.level_1("Access token created");
+        return token;
+    } catch (error) {
+        console.error("Error creating access token:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 // #endregion
 // #region conversation
@@ -99,31 +127,28 @@ async function create_accessToken(account_sid:string, api_key:string, api_key_se
  * @param {string} friendly_name - The friendly name for the new conversation.
  * @returns {Promise<ConversationInstance>} A promise that resolves to the created conversation instance.
  */
-async function create_conversation(friendly_name: string):Promise<ConversationInstance> {
-    //* fetch get list of conversations
-    const conversations: ConversationInstance[] = await fetch_list_Conversations();
-    
-    //* if conversation isn't empty
-    if (conversations.length > 0){
-        for (let i = 0; i < conversations.length; i++) {
-            const conversation = conversations[i];
-
-            //* if conversation already exists
-            if (conversation.friendlyName === friendly_name){
-                console.log(`${conversation.sid} Conversation already exists`);
-
-                //* fetch and return conversation
+async function create_conversation(friendly_name: string): Promise<ConversationInstance> {
+    try {
+        const conversations: ConversationInstance[] = await fetch_list_Conversations();
+        
+        // Check if conversation already exists
+        for (const conversation of conversations) {
+            if (conversation.friendlyName === friendly_name) {
+                logger.level_1(`${conversation.sid} Conversation already exists`);
                 return conversation;
             }
         }
-    }
 
-    //* if conversation is empty or doesn't exist
-    let conversation_instance = await CLIENT.conversations.v1.conversations.create({
-        friendlyName: friendly_name,
-    });
-    console.log(`${conversation_instance.sid} coversation created`);
-    return conversation_instance;
+        // Create new conversation if it doesn't exist
+        const conversation_instance = await CLIENT.conversations.v1.conversations.create({
+            friendlyName: friendly_name,
+        });
+        logger.level_1(`${conversation_instance.sid} conversation created`);
+        return conversation_instance;
+    } catch (error) {
+        console.error("Error creating conversation:", (error as Error).message);
+        throw error;
+    }
 }
 
 /**
@@ -133,17 +158,27 @@ async function create_conversation(friendly_name: string):Promise<ConversationIn
  * @param {string} twilio_number - The Twilio phone number to be used as the proxy address.
  * @returns {Promise<string>} A promise that resolves to the SID of the created participant.
  */
-async function create_conversation_participant_SMS(conversation_sid: string, number:string, twilio_number:string):Promise<ParticipantInstance> {
-    const participant = await CLIENT.conversations.v1
-    .conversations(conversation_sid)
-    .participants.create({
-      "messagingBinding.address": number,
-      "messagingBinding.proxyAddress": twilio_number,
-    });
+async function create_conversation_participant_SMS(
+    conversation_sid: string,
+    number: string,
+    twilio_number: string
+): Promise<ParticipantInstance> {
+    try {
+        const participant = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .participants.create({
+                "messagingBinding.address": number,
+                "messagingBinding.proxyAddress": twilio_number,
+            });
 
-    console.log(`${participant.sid} SMS participant created`); 
-    return participant;
+        logger.level_1(`${participant.sid} SMS participant created`);
+        return participant;
+    } catch (error) {
+        console.error("Error creating SMS participant:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 /**
  * Creates a CHAT participant in the specified conversation.
@@ -152,32 +187,33 @@ async function create_conversation_participant_SMS(conversation_sid: string, num
  * @param {string} identity - The identity of the participant.
  * @returns {Promise<string>} A promise that resolves to the SID of the created participant.
  */
-async function create_conversation_participant_CHAT(conversation_sid:string, identity:string):Promise<ParticipantInstance> {
-    
-    //* fetch list of participants
-    const participants: ParticipantInstance[] = await fetch_list_participants(conversation_sid);
-    
-    //* if participants list isn't empty
-    if (participants.length > 0){
-        for (let i = 0; i < participants.length; i++) {
-            const participant = participants[i];
+async function create_conversation_participant_CHAT(
+    conversation_sid: string,
+    identity: string
+): Promise<ParticipantInstance> {
+    try {
+        // Fetch list of participants
+        const participants: ParticipantInstance[] = await fetch_list_participants(conversation_sid);
 
-            //* if participant already exists
-            if (participant.identity === identity){
-                console.log(`${participant.sid} participant already exists`);
-
-                //* return participant     
+        // Check if participant already exists
+        for (const participant of participants) {
+            if (participant.identity === identity) {
+                logger.level_1(`${participant.sid} participant already exists`);
                 return participant;
             }
         }
+
+        // Create new participant if they don't exist
+        const participant = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .participants.create({ identity: identity });
+
+        logger.level_1(`${participant.sid} chat participant created`);
+        return participant;
+    } catch (error) {
+        console.error("Error creating chat participant:", (error as Error).message);
+        throw error;
     }
-    
-    const participant = await CLIENT.conversations.v1
-        .conversations(conversation_sid)
-        .participants.create({ identity: identity });
-  
-    console.log(`${participant.sid} chat participant created`);
-    return participant;
 }
 
 
@@ -187,14 +223,19 @@ async function create_conversation_participant_CHAT(conversation_sid:string, ide
  * @returns {Promise<ConversationInstance>} A promise that resolves to the fetched conversation instance.
  */
 async function fetch_Conversation(conversation_sid: string): Promise<ConversationInstance> {
-    
-    const conversation = await CLIENT.conversations.v1
-        .conversations(conversation_sid)
-        .fetch();
+    try {
+        const conversation = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .fetch();
 
-    console.log(conversation.sid + " conversation was fetched");
-    return conversation;
+        logger.level_1(`${conversation.sid} conversation was fetched`);
+        return conversation;
+    } catch (error) {
+        console.error("Error fetching conversation:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 
 /**
@@ -202,14 +243,20 @@ async function fetch_Conversation(conversation_sid: string): Promise<Conversatio
  * @param {string} conversation_sid - The unique identifier for the conversation.
  * @returns {Promise<ParticipantInstance[]>} A promise that resolves to an array of ParticipantInstance objects.
  */
-async function fetch_list_participants(conversation_sid: string): Promise<ParticipantInstance[]>{
-    const participants = await CLIENT.conversations.v1
-    .conversations(conversation_sid)
-    .participants.list({ limit: 20 });
+async function fetch_list_participants(conversation_sid: string): Promise<ParticipantInstance[]> {
+    try {
+        const participants = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .participants.list({ limit: 20 });
 
-    console.log(participants.length + " participants fetched from: " + conversation_sid);
-    return participants; 
+        logger.level_1(`${participants.length} participants fetched from: ${conversation_sid}`);
+        return participants;
+    } catch (error) {
+        console.error("Error fetching list of participants:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 
 /**
@@ -219,25 +266,36 @@ async function fetch_list_participants(conversation_sid: string): Promise<Partic
  * @returns {Promise<ParticipantInstance>} A promise that resolves to the fetched participant instance.
  */
 async function fetch_conversation_participant(conversation_sid: string, identity: string): Promise<ParticipantInstance> {
-    const participant = await CLIENT.conversations.v1
-        .conversations(conversation_sid)
-        .participants(identity)
-        .fetch();
-  
-        console.log(`${participant.sid} participant fetched`);
+    try {
+        const participant = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .participants(identity)
+            .fetch();
+
+        logger.level_1(`${participant.sid} participant fetched`);
         return participant;
+    } catch (error) {
+        console.error("Error fetching conversation participant:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 /**
  * fetches the conversations from my account
  * @returns {Promise<ConversationInstance[]>}an array with the current conversations
  */
 async function fetch_list_Conversations(): Promise<ConversationInstance[]> {
-    let conversations:ConversationInstance[] = await CLIENT.conversations.v1.conversations.list();
-        
-    console.log(`${conversations.length} fetched conversations`); 
-    return conversations;
+    try {
+        const conversations: ConversationInstance[] = await CLIENT.conversations.v1.conversations.list();
+        logger.level_1(`${conversations.length} conversations fetched`);
+        return conversations;
+    } catch (error) {
+        console.error("Error fetching list of conversations:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 /**
  * deletes a conversation
@@ -245,31 +303,38 @@ async function fetch_list_Conversations(): Promise<ConversationInstance[]> {
  */
 async function delete_conversation(conversationSid: string) {
     try {
-        let x = await fetch_Conversation(conversationSid);
+        const conversation = await fetch_Conversation(conversationSid);
         await CLIENT.conversations.v1.conversations(conversationSid).remove();
-        console.log(`Conversation ${x.sid} has been deleted.`);
+        logger.level_1(`Conversation ${conversation.sid} has been deleted.`);
     } catch (error) {
-        console.error('Error deleting conversation:', error);
+        console.error("Error deleting conversation:", (error as Error).message);
+        throw error;
     }
 }
+
 
 /**
  * Deletes all conversations in the Twilio account.
  * @returns {Promise<void>} A promise that resolves when all conversations are deleted.
  */
 async function delete_all_conversations(): Promise<void> {
-    const conversations = await fetch_list_Conversations();
+    try {
+        const conversations = await fetch_list_Conversations();
 
-    if (conversations.length > 0){
-        for (const conversation of conversations) {
-            await delete_conversation(conversation.sid);
+        if (conversations.length > 0) {
+            for (const conversation of conversations) {
+                await delete_conversation(conversation.sid);
+            }
+            logger.level_1("All conversations have been deleted");
+        } else {
+            logger.level_1("No conversations to be deleted");
         }
-        console.log("all conversations have been deleted");
-        return;
+    } catch (error) {
+        console.error("Error deleting all conversations:", (error as Error).message);
+        throw error;
     }
-
-    console.log("no conversation to be deleted");
 }
+
 
 /**
  * Sends a message to a specified conversation.
@@ -278,17 +343,22 @@ async function delete_all_conversations(): Promise<void> {
  * @param {string} body - The content of the message.
  * @returns {Promise<void>} A promise that resolves when the message is sent.
  */
-async function send_message(conversation_sid:string, author:string, body:string):Promise<void> {
-    const message = await CLIENT.conversations.v1
-        .conversations(conversation_sid)
-        .messages.create({
-            author: author,  // The identity of the participant sending the message
-            body: body,      // The message content
-        });
+async function send_message(conversation_sid: string, author: string, body: string): Promise<void> {
+    try {
+        const message = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .messages.create({
+                author: author,  // The identity of the participant sending the message
+                body: body,      // The message content
+            });
 
-    console.log(`message: ${message.body} sent`);
-    return;
+        logger.level_1(`Message: ${message.body} sent`);
+    } catch (error) {
+        console.error("Error sending message:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 /**
  * Removes a participant from a specified conversation.
@@ -303,12 +373,13 @@ async function delete_participant(conversationSid: string, participantSid: strin
             .participants(participantSid)
             .remove();
 
-        console.log(`${participantSid} participant has been removed from conversation ${conversationSid}.`);
-        return;
+        logger.level_1(`${participantSid} participant has been removed from conversation ${conversationSid}.`);
     } catch (error) {
-        console.error('Error removing participant:', error);
+        console.error("Error removing participant:", (error as Error).message);
+        throw error;
     }
 }
+
 
 
 // #endregeion
@@ -320,15 +391,22 @@ async function delete_participant(conversationSid: string, participantSid: strin
  * @param number_from - The sender's phone number in E.164 format.
  * @param number_to - The recipient's phone number in E.164 format.
  */
-async function create_whatsapp_message(body:string, number_from:string, number_to:string) {
-    const message = await CLIENT.messages.create({
-        body: body,
-        from: number_from,
-        to: number_to,
-    });
-    
-      console.log("whatsapp message sent");
+async function create_whatsapp_message(body: string, number_from: string, number_to: string) {
+    try {
+        const message = await CLIENT.messages.create({
+            body: body,
+            from: number_from,
+            to: number_to,
+        });
+
+        logger.level_1("WhatsApp message sent");
+    } catch (error) {
+        console.error("Error sending WhatsApp message:", (error as Error).message);
+        throw error;
+    }
 }
+
+
 
 
 /**
@@ -337,31 +415,43 @@ async function create_whatsapp_message(body:string, number_from:string, number_t
  * @param limit - The maximum number of messages to retrieve.
  * @returns A promise that resolves to an array of MessageInstance objects.
  */
-async function fetch_whole_conversation(conversation_sid:string, limit: number):Promise<MessageInstance[]> {
-  const messages = await CLIENT.conversations.v1
-    .conversations(conversation_sid)
-    .messages.list({ limit: limit });
+async function fetch_whole_conversation(conversation_sid: string, limit: number): Promise<MessageInstance[]> {
+    try {
+        const messages = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .messages.list({ limit: limit });
 
-    console.log("whatsapp conversation fetched");
-    return messages;
+        logger.level_1("WhatsApp conversation fetched");
+        return messages;
+    } catch (error) {
+        console.error("Error fetching whole conversation:", (error as Error).message);
+        throw error;
+    }
 }
+
 
 /**
  * Fetches the last message from a specified conversation.
- * @param conversation_Sid - The unique identifier for the conversation.
+ * @param conversation_sid - The unique identifier for the conversation.
  * @param limit - The maximum number of messages to retrieve.
  * @returns A promise that resolves to the last message instance.
+ * @throws Will throw an error if fetching the last message fails.
  */
-async function fetch_last_message(conversation_Sid:string, limit: number):Promise<MessageInstance> {
-    const messages = await CLIENT.conversations.v1
-    .conversations(conversation_Sid)
-    .messages.list({
-      order: "desc",
-      limit: limit,
-    });
+async function fetch_last_message(conversation_sid: string, limit: number): Promise<MessageInstance> {
+    try {
+        const messages = await CLIENT.conversations.v1
+            .conversations(conversation_sid)
+            .messages.list({
+                order: "desc",
+                limit: limit,
+            });
 
-    console.log("last message fetched");
-    return messages[0]
+        logger.level_1("Last message fetched");
+        return messages[0];
+    } catch (error) {
+        console.error("Error fetching last message:", (error as Error).message);
+        throw error;
+    }
 }
 
 // #endregion
@@ -383,7 +473,7 @@ export class TwilioBot{
      */
     async initialize() {          
         this.sid = (await create_conversation_participant_CHAT(this.conversation_Sid, this.identity)).sid;
-        console.log(this.sid + " TwilioBot is initialized");
+        logger.level_2(this.sid + " TwilioBot is initialized");
     }
 
     /**
@@ -397,7 +487,7 @@ export class TwilioBot{
 
         await send_message(this.conversation_Sid, this.identity, body);
         
-        console.log("message sent");
+        logger.level_2("message sent");
         return
     }
 
@@ -408,7 +498,7 @@ export class TwilioBot{
     async get(): Promise<ParticipantInstance>{
         let participant = await fetch_conversation_participant(this.conversation_Sid, this.identity);
 
-        console.log(`${this.sid} participant was getted`);
+        logger.level_2(`${this.sid} participant was getted`);
         return participant;
     }
 
@@ -425,7 +515,7 @@ export class TwilioBot{
         //* get service_sid
         let service_sid = await (await fetch_Conversation(this.conversation_Sid)).chatServiceSid 
         
-        console.log("access token created");
+        logger.level_2("access token created");
         
         create_accessToken(ACCOUNT_SID, API_KEY, API_KEY_SECRET, this.identity, service_sid);   
     }
@@ -448,7 +538,7 @@ export class Twilio_Conversation{
     async initialize(){
         //? move this functionality to createConversation
         this.sid = (await create_conversation(this.name)).sid;
-        console.log(this.sid + " conversation is initialized");
+        logger.level_2(this.sid + " conversation is initialized");
     }
 
     /**
@@ -458,7 +548,7 @@ export class Twilio_Conversation{
     async get(): Promise<ConversationInstance>{      
         let x = await fetch_Conversation(this.sid);
 
-        console.log(x.sid + " conversation was getted");
+        logger.level_2(x.sid + " conversation was getted");
         return x;
     }
 
@@ -471,7 +561,7 @@ export class Twilio_Conversation{
         let bot = new TwilioBot(this.sid, identity);
         await bot.initialize();
 
-        console.log("bot created");
+        logger.level_2("bot created");
         return bot;
     }
 
@@ -483,7 +573,7 @@ export class Twilio_Conversation{
     async create_SMS_participant(participant_number:string):Promise<ParticipantInstance>{
         let instance = await create_conversation_participant_SMS(this.sid, participant_number, TWILIO_NUMBER);
 
-        console.log("SMS participant created");
+        logger.level_2("SMS participant created");
         return instance;
     }
 
@@ -494,7 +584,7 @@ export class Twilio_Conversation{
     async delete_conversation(){
         delete_conversation(this.sid);
 
-        console.log("conversation deleted");
+        logger.level_2("conversation deleted");
         return;
     }
 
@@ -505,7 +595,7 @@ export class Twilio_Conversation{
     async fetch_all_messages():Promise<MessageInstance[]>{
         const messages = await fetch_whole_conversation(this.sid, 10);
 
-        console.log("messages fetched")
+        logger.level_2("messages fetched")
         return messages
     }
 
@@ -513,14 +603,14 @@ export class Twilio_Conversation{
     async fetch_last_message():Promise<MessageInstance> {
         const message = await fetch_last_message(this.sid, 1);
 
-        console.log("last message fetched");
+        logger.level_2("last message fetched");
         return message;
     }
 
     async find_sms_participant(){
         const x = await fetch_list_participants(this.sid);
         for (let i = 0; i < x.length; i++){
-            console.log(x[i]);
+            logger.level_2(x[i].sid, "participant");
 
             if (i > 10)break;
         }
@@ -586,11 +676,10 @@ export class Twilio_Conversation_Double{
 
 // // await sleep(1000 * 30);
 
-// console.log(await conversation.fetch_last_message());
+// logger.testing(await conversation.fetch_last_message());
 
 
 
 
 
 await delete_all_conversations();
-

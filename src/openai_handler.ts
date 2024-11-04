@@ -1,8 +1,11 @@
 import OpenAI from "openai";
 import type { Stream } from "openai/streaming.mjs";
+import { QuickLogger } from "./logging";
 const key = process.env.OPENAI_KEY;
 const openai = new OpenAI({ apiKey: key });
 
+//* logger 
+const logger = new QuickLogger("level_1");
 
 // #region SCHEMAS
 
@@ -56,9 +59,21 @@ async function create_asistant(): Promise<OpenAI.Beta.Assistant> {
             },
         ],
     });
-    console.log("asistant created");
+    logger.level_1("asistant created");
 
     return assistant;
+}
+
+/**
+ * Deletes all assistants using OpenAI's beta API.
+ * @returns {Promise<void>} A promise that resolves when all assistants are deleted.
+ */
+async function delete_all_assistants(): Promise<void> {
+    const assistants = await openai.beta.assistants.list();
+    for (const assistant of assistants.data) {
+        await openai.beta.assistants.del(assistant.id);
+        logger.level_1(`Assistant ${assistant.id} deleted`);
+    }
 }
 
 
@@ -69,7 +84,7 @@ async function create_asistant(): Promise<OpenAI.Beta.Assistant> {
  */
 async function delete_assistant(assistant: OpenAI.Beta.Assistants.Assistant): Promise<void> {
     await openai.beta.assistants.del(assistant.id);
-    console.log("asistant deleted");
+    logger.level_1("asistant deleted");
 }
 
 //#region THREADS
@@ -80,7 +95,7 @@ async function delete_assistant(assistant: OpenAI.Beta.Assistants.Assistant): Pr
  */
 async function create_thread(): Promise<OpenAI.Beta.Threads.Thread> {
     const thread = await openai.beta.threads.create();
-    console.log("thread created");
+    logger.level_1("thread created");
 
     return thread;
 }
@@ -99,7 +114,7 @@ async function send_message_thread(thread: OpenAI.Beta.Threads.Thread, msg: stri
             content: msg,
         }
     );
-    console.log("message created");
+    logger.level_1("message created");
     return message;
 }
 
@@ -118,7 +133,7 @@ async function create_run(threadId: string, assistantId: string):Promise<Stream<
         assistant_id: assistantId,
         stream: true
     });
-    console.log("Run initiated");
+    logger.level_1("Run initiated");
 
     return run;
 }
@@ -171,7 +186,7 @@ async function submit_tool_outputs(threadId: string, runId: string, tool_calls: 
             stream: true
         },
     );
-    // console.log("Tool outputs submitted successfully:", tool_outputs);
+    // logger.level_1("Tool outputs submitted successfully:", tool_outputs);
 
     return new_run;
 }
@@ -202,7 +217,7 @@ async function run_run(run:Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>, 
             //* iterate the tool calls
             for (let i = 0; i < tool_calls.length; i++) {
                 //* grab required data from each call
-                // console.log(tool_calls[i]);
+                // logger.level_1(tool_calls[i]);
                 const toolCall = event.data.required_action.submit_tool_outputs.tool_calls[i];
                 const toolCallId = toolCall.id;
                 const functionName = toolCall.function.name; // Get the function name
@@ -225,7 +240,7 @@ async function run_run(run:Stream<OpenAI.Beta.Assistants.AssistantStreamEvent>, 
         }
 
         if (event.event === "thread.run.completed") {
-            console.log("thread run completed");
+            logger.level_1("thread run completed");
             await fetch_thread(thread_id);
             break;
         }
@@ -267,10 +282,10 @@ async function fetch_thread(thread_id: string): Promise<void> {
 
     //* prints all messages
     threadMessages.data.forEach((message, index) => {
-        console.log(`Message ${index + 1}:`);
+        logger.level_1(`Message ${index + 1}:`);
         message.content.forEach(content => {
             if (content.type === "text") {
-                console.log(content.text.value);
+                logger.level_1(content.text.value);
             }
         });
     });
@@ -311,7 +326,7 @@ export class OpenAI_Asistant {
             await send_message_thread(await this.thread, msg)
         }
         else {
-            console.log("no thread has been created for this assistant");
+            logger.level_2("no thread has been created for this assistant");
         }
     }
 
@@ -329,7 +344,7 @@ export class OpenAI_Asistant {
             await delete_assistant(this.asistant)
         }
         else {
-            console.log("the assistant can't be deleted because it hasn't been created");
+            logger.level_2("the assistant can't be deleted because it hasn't been created");
         }
     }
 
@@ -351,7 +366,7 @@ export class OpenAI_Asistant {
             await run_run(run, this.thread.id)
         }
         else {
-            console.log("need to initialize and create thread first");
+            logger.level_2("need to initialize and create thread first");
         }
     }
 
@@ -360,7 +375,7 @@ export class OpenAI_Asistant {
             const last_message = await fetch_last_message_thread(this.thread?.id);
             return last_message;
         }
-        console.log("this open_ai assistant doesnt have a thread");
+        logger.level_2("this open_ai assistant doesnt have a thread");
         throw new Error("this assistant has no thread");
         
     }
@@ -370,7 +385,7 @@ export class OpenAI_Asistant {
             const thread = await fetch_thread(this.thread?.id);
             return thread;
         }
-        console.log("this open_ai assistant doesnt have a thread");
+        logger.level_2("this open_ai assistant doesnt have a thread");
     }
 }
 
@@ -389,7 +404,7 @@ export class OpenAI_Asistant {
 
 // await my_assistant.delete_assistant()
 
-
+await delete_all_assistants();
 
 
 

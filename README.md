@@ -1,39 +1,22 @@
-# customer_service_handler
+# CUSTOMER SERVICE HANDLER
 
-To install dependencies:
+## FOR DEVELOPMENT
 
+### start ngrook for twilio
 ```bash
-bun install
+ngrok http --url https://creative-probable-tomcat.ngrok-free.app 80
 ```
-
-To run:
-
+### start serveo for instagram API
 ```bash
-bun run index.ts
+ssh -R 80:localhost:8080 serveo.net
 ```
+- for every iteration, it is required to add the new http link created by serveo to the Instagram webhook configuration
 
-## To Run server for development:
-### run server
+then you can finally:
+### Start local server
 ```bash
-$env:NGROK_AUTHTOKEN = "2nGsUeFbiYyB7fBbON2YgQ6v3KB_cvd1NG1dvuHgb5ykAJry"; bun run index.ts  
+bun index.ts
 ```
-### start program
-```bash
-bun twilo_handler.ts
-```
-## Method 2 to run server with development
-this method uses a ngrook static domain
-### run server
-```bash
-ngrok http --url=profound-bull-notable.ngrok-free.app 80
-```
-### start program
-```bash
-bun ./index.ts
-```
-
-
-then copy the acces code and paste it on codesanbox box
 
 
 This project was created using `bun init` in bun v1.1.30. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.

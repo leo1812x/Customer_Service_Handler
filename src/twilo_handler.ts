@@ -24,7 +24,7 @@ if (!ACCOUNT_SID || !AUTH_TOKEN || !API_KEY || !API_KEY_SECRET || !TWILIO_NUMBER
 
 
 //* logger
-let logger = new QuickLogger("level_1");
+let logger = new QuickLogger("level_2");
 
 
 // #region VERIFICATION
@@ -473,7 +473,7 @@ export class TwilioBot{
      */
     async initialize() {          
         this.sid = (await create_conversation_participant_CHAT(this.conversation_Sid, this.identity)).sid;
-        logger.level_2(this.sid + " TwilioBot is initialized");
+        logger.level_2("Twilio Bot is initialized");
     }
 
     /**
@@ -487,7 +487,7 @@ export class TwilioBot{
 
         await send_message(this.conversation_Sid, this.identity, body);
         
-        logger.level_2("message sent");
+        logger.level_2("twilio bot sent message to conversation");
         return
     }
 
@@ -498,7 +498,7 @@ export class TwilioBot{
     async get(): Promise<ParticipantInstance>{
         let participant = await fetch_conversation_participant(this.conversation_Sid, this.identity);
 
-        logger.level_2(`${this.sid} participant was getted`);
+        logger.level_2(`${this.sid} participant was fetched`);
         return participant;
     }
 
@@ -515,9 +515,10 @@ export class TwilioBot{
         //* get service_sid
         let service_sid = await (await fetch_Conversation(this.conversation_Sid)).chatServiceSid 
         
-        logger.level_2("access token created");
         
-        create_accessToken(ACCOUNT_SID, API_KEY, API_KEY_SECRET, this.identity, service_sid);   
+        let access_token = await create_accessToken(ACCOUNT_SID, API_KEY, API_KEY_SECRET, this.identity, service_sid);  
+        logger.level_2("twilio access token created");
+        logger.level_2(console.log(access_token.toJwt()));
     }
 }
 
@@ -538,7 +539,7 @@ export class Twilio_Conversation{
     async initialize(){
         //? move this functionality to createConversation
         this.sid = (await create_conversation(this.name)).sid;
-        logger.level_2(this.sid + " conversation is initialized");
+        logger.level_2("twilio conversation is initialized");
     }
 
     /**
@@ -548,7 +549,7 @@ export class Twilio_Conversation{
     async get(): Promise<ConversationInstance>{      
         let x = await fetch_Conversation(this.sid);
 
-        logger.level_2(x.sid + " conversation was getted");
+        logger.level_2("conversation was feched");
         return x;
     }
 
@@ -561,7 +562,7 @@ export class Twilio_Conversation{
         let bot = new TwilioBot(this.sid, identity);
         await bot.initialize();
 
-        logger.level_2("bot created");
+        logger.level_2("twilio bot created in conversation");
         return bot;
     }
 
@@ -573,7 +574,7 @@ export class Twilio_Conversation{
     async create_SMS_participant(participant_number:string):Promise<ParticipantInstance>{
         let instance = await create_conversation_participant_SMS(this.sid, participant_number, TWILIO_NUMBER);
 
-        logger.level_2("SMS participant created");
+        logger.level_2("twilio SMS participant created in conversation");
         return instance;
     }
 
@@ -584,7 +585,7 @@ export class Twilio_Conversation{
     async delete_conversation(){
         delete_conversation(this.sid);
 
-        logger.level_2("conversation deleted");
+        logger.level_2("twilio conversation deleted");
         return;
     }
 
@@ -595,7 +596,7 @@ export class Twilio_Conversation{
     async fetch_all_messages():Promise<MessageInstance[]>{
         const messages = await fetch_whole_conversation(this.sid, 10);
 
-        logger.level_2("messages fetched")
+        logger.level_2("twilio conversation messages fetched")
         return messages
     }
 
@@ -603,14 +604,14 @@ export class Twilio_Conversation{
     async fetch_last_message():Promise<MessageInstance> {
         const message = await fetch_last_message(this.sid, 1);
 
-        logger.level_2("last message fetched");
+        logger.level_2("twilio conversation last message fetched");
         return message;
     }
 
     async find_sms_participant(){
         const x = await fetch_list_participants(this.sid);
         for (let i = 0; i < x.length; i++){
-            logger.level_2(x[i].sid, "participant");
+            logger.level_2(x[i].sid, "twilio participant");
 
             if (i > 10)break;
         }

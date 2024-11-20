@@ -4,7 +4,7 @@
 
 ### start ngrook for twilio
 ```bash
-ngrok http --url https://creative-probable-tomcat.ngrok-free.app 80
+ngrok http --url=https://creative-probable-tomcat.ngrok-free.app 80
 ```
 ### start serveo for instagram API
 ```bash

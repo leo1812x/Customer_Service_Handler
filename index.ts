@@ -107,7 +107,7 @@ let monster = new Monster_Class();
 
 
 
-//#region SERVER
+//#region TWILIO SERVER
 const server = serve({
 	port: 80, // The port your server will listen on
 	async fetch(req) {
@@ -154,16 +154,19 @@ logger.server("Bun web server at http://localhost:80");
 
 //#region Server 2
 
+
+
+
+
 const server2 = serve({
     port: 8080,
     async fetch(req) {
         // Parse the request URL
         const url = new URL(req.url);
-        const hubChallenge = url.searchParams.get('hub.challenge');
-
-        // Log the full request URL
         logger.server("Request URL: ", url.toString());
 
+		//* handle new webhook creation
+        const hubChallenge = url.searchParams.get('hub.challenge');
         if (hubChallenge) {
             // Return the hub.challenge parameter
             return new Response(hubChallenge, { status: 200 });

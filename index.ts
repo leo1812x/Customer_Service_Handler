@@ -2,12 +2,16 @@ import { serve } from 'bun';
 import { OpenAI_Asistant } from './src/openai_handler';
 import { Twilio_Conversation, type TwilioBot } from './src/twilo_handler';
 import { QuickLogger } from './src/logging';
+import { Insta_bot } from './src/instagram_handler';
 
 //* logger
 const logger = new QuickLogger("level_3");
 
+//*INSTAGRAM ID
+const IG_ID = "17841470666117265"
+
 //#region CLASSES
-class Monster_Class {
+class Twilio_super_class {
 	private openAI_assistant!: OpenAI_Asistant;
 	private twilio_conversation!: Twilio_Conversation;
 	private bot!: TwilioBot;
@@ -96,14 +100,27 @@ class Monster_Class {
 		logger.level_3("access token created");
 	}
 }
+
+class Insta_super_class{
+	constructor(ig_id:string){
+		
+	}
+}
+
+
+
 //#region TESTING
 
 
 // logger.testing("region TEST index starts");
 
-let monster = new Monster_Class();
+//* twilio
+let monster = new Twilio_super_class();
 // await monster.initialize("+15046891609");
 // await monster.create_accessToken();
+
+//* instagram
+let insta_bot = new Insta_bot();
 
 
 
@@ -170,15 +187,64 @@ const server2 = serve({
         if (hubChallenge) {
             // Return the hub.challenge parameter
             return new Response(hubChallenge, { status: 200 });
-        } else {
-            // Return an error response if hub.challenge is missing
-            return new Response("Missing hub.challenge parameter", { status: 400 });
-        }
+        } 
+
+		if (req.method === "POST" && url.pathname === "/webhook") {
+			try {
+				//*grab message
+				const rawData = await req.text();
+				const data = JSON.parse(rawData);
+				const messaging_data = data.entry[0].messaging[0]
+				
+
+				//*if webhook is message and sender isnt me:
+				if (messaging_data.message && messaging_data.sender.id !== IG_ID){
+					const incomming_message = {
+						sender: data.entry[0].messaging[0].sender.id,
+						message: data.entry[0].messaging[0].message.text
+					}
+
+					console.log(incomming_message);
+					insta_bot.answer(incomming_message.sender, "this is a test");
+
+				}				
+
+				//*if webhook is read:
+				if (messaging_data.read){
+					console.log("mensaje visto");
+					
+				}
+		
+			} catch (error) {
+				console.error("Failed to parse JSON:", error);
+			}
+		}
+		
+		// && messaging_data.sender.id !== IG_ID
+		
+
+		return new Response("end", { status: 200 });
     }
 });
 
 
 logger.server("Bun web server2 at http://localhost:8080");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

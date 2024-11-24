@@ -400,8 +400,8 @@ export class OpenAI_Asistant {
 // let my_assistant = new OpenAI_Asistant()
 // let assistant_object = await my_assistant.initialize();
 // let thread = await my_assistant.create_thread();
-// // let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456.")
-// // let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123");
+// let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456.")
+// let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123");
 // let message = await my_assistant.add_message("get me the stored name, the passwords are 123 and 456. also do it with 432, 123. finally, if you are able to fetch the name, use the name in the same function (use it as password_1 & password_2) to get a secret name");
 
 // await my_assistant.run();

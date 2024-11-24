@@ -102,8 +102,15 @@ class Twilio_super_class {
 }
 
 class Insta_super_class{
-	constructor(ig_id:string){
-		
+	private assistant?:OpenAI_Asistant;
+	private insta_bot?:Insta_bot;
+
+	constructor(){
+		this.insta_bot = new Insta_bot();
+	}
+
+	create_answer(recipient_id:string){
+		this.insta_bot?.answer(recipient_id, "mgs")
 	}
 }
 

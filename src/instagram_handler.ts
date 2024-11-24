@@ -1,6 +1,5 @@
 import { fetch } from 'bun';
 import { QuickLogger } from './logging';
-import { OpenAI_Asistant } from './openai_handler';
 
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN!;
 const IG_ID = "17841470666117265" //gotten by getting fetchInstagramData(ACCESS_TOKEN.user_id);
@@ -283,20 +282,12 @@ async function fetch_instagram_message_details(access_token: string, message_id:
 //#region CLASSES   
 
 export class Insta_bot{
-    openai_assistant?: OpenAI_Asistant;
-
     constructor() {
 
     }
 
     answer(recipient_id: string, message:string){
         send_instagram_message(IG_ID, message, recipient_id);
-    }
-
-    async create_openai_conversation(recipient_id:string){
-        const open_ai_assistant = new OpenAI_Asistant();
-        await open_ai_assistant.initialize();
-        await open_ai_assistant.create_thread();
     }
 }
 

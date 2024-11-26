@@ -1,133 +1,24 @@
 import { serve } from 'bun';
-import { OpenAI_Asistant } from './src/openai_handler';
-import { Twilio_Conversation, type TwilioBot } from './src/twilo_handler';
 import { QuickLogger } from './src/logging';
-import { Insta_bot } from './src/instagram_handler';
+import { Twilio_openAI } from './src/handlers/twilio_handler';
+import { Insta_openAI } from './src/handlers/insta_handler';
 
 //* logger
-const logger = new QuickLogger("level_3");
+const logger = new QuickLogger("testing");
 
 //*INSTAGRAM ID
 const IG_ID = "17841470666117265"
 
-//#region CLASSES
-class Twilio_super_class {
-	private openAI_assistant!: OpenAI_Asistant;
-	private twilio_conversation!: Twilio_Conversation;
-	private bot!: TwilioBot;
-
-	constructor(){}
-
-	/**
-	 * Initializes the customer service handler by setting up the OpenAI assistant,
-	 * creating a Twilio conversation, and adding an SMS participant and bot to the conversation.
-	 * @param sms_number - The phone number to be added as an SMS participant in the Twilio conversation.
-	 * @returns A promise that resolves when the initialization process is complete.
-	 */
-	async initialize(sms_number:string){
-		logger.level_3("MONSTER INITIALIZE STARTED");
-
-		//* create openAI assistant and thread
-		this.openAI_assistant = new OpenAI_Asistant();
-		await this.openAI_assistant.initialize();
-		await this.openAI_assistant.create_thread();
-		logger.level_3("OPENAI ASISTANT CREATED");
-
-		//* create twilio conversation
-		this.twilio_conversation = new Twilio_Conversation("conversation for test");
-		await this.twilio_conversation.initialize();
-		logger.level_3("twilio conversation created");
-
-		//* add SMS participant and bot to conversation
-		const participant = await this.twilio_conversation.create_SMS_participant(sms_number);
-		this.bot = await this.twilio_conversation.create_twilio_bot("bot");
-		logger.level_3("monster initialized succesfully");
-	}
-
-	/**
-	 * Asynchronously creates an answer by interacting with OpenAI and Twilio services.
-	 * This method performs the following steps:
-	 * 1. Fetches the last message from the Twilio conversation and adds it to the OpenAI assistant.
-	 * 2. Runs the OpenAI assistant to generate a response.
-	 * 3. Sends the generated response from the OpenAI assistant back to the Twilio conversation.
-	 * @param message - The message string to be used for testing the bot.
-	 * @returns A promise that resolves when the answer creation process is complete.
-	 */
-	async create_answer(message: string){
-		//*this can be used to make the bot test itself
-		// await this.bot.send_message(message);
-
-		//*fetch last message from conversation and pass it to apenai and run it
-		await this.openAI_assistant.add_message((await this.twilio_conversation.fetch_last_message()).body);
-		await this.openAI_assistant.run();
-
-		//* pass open.ai answer to twilio conversation as a message from the bot
-		await this.bot.send_message((await this.openAI_assistant.fetch_last_message_thread()));
-
-		//*this proves that the program works
-		logger.level_3("all worked: ", (await this.twilio_conversation.fetch_last_message()).body);
-	}
-
-	/**
-	 * Deletes all relevant data associated with the instance.
-	 * This method performs the following actions:
-	 * 1. Deletes the assistant using the OpenAI assistant service.
-	 * 2. Deletes the conversation using the Twilio conversation service.
-	 * @returns {Promise<void>} A promise that resolves when all deletions are complete.
-	 */
-	async delete_all(){
-		await this.openAI_assistant.delete_assistant();
-		await this.twilio_conversation.delete_conversation();
-		logger.level_3("asistant and conversation of monster instance deleted");
-	}
-
-	/**
-	 * Fetches SMS participants from a Twilio conversation.
-	 * This asynchronous method retrieves an SMS participant
-	 * @returns {Promise<void>} A promise that resolves when the participant is fetched.
-	 */
-	async fetch_sms_participants(){
-		const participant = await this.twilio_conversation.find_sms_participant();
-		logger.level_3("participant fetched");
-	}
-
-	/**
-	 * Asynchronously creates an access token using the bot instance.
-	 * @returns {Promise<void>} A promise that resolves when the access token is created.
-	 */
-	async create_accessToken(){
-		await this.bot.create_accessToken();
-		logger.level_3("access token created");
-	}
-}
-
-class Insta_super_class{
-	private assistant?:OpenAI_Asistant;
-	private insta_bot?:Insta_bot;
-
-	constructor(){
-		this.insta_bot = new Insta_bot();
-	}
-
-	create_answer(recipient_id:string){
-		this.insta_bot?.answer(recipient_id, "mgs")
-	}
-}
-
-
-
 //#region TESTING
 
-
-// logger.testing("region TEST index starts");
-
 //* twilio
-let monster = new Twilio_super_class();
+let monster = new Twilio_openAI();
 // await monster.initialize("+15046891609");
 // await monster.create_accessToken();
 
 //* instagram
-let insta_bot = new Insta_bot();
+let insta_bot = new Insta_openAI();
+await insta_bot.initialize();
 
 
 
@@ -210,10 +101,7 @@ const server2 = serve({
 						sender: data.entry[0].messaging[0].sender.id,
 						message: data.entry[0].messaging[0].message.text
 					}
-
-					console.log(incomming_message);
-					insta_bot.answer(incomming_message.sender, "this is a test");
-
+					insta_bot.handle_message(incomming_message.sender, incomming_message.message);
 				}				
 
 				//*if webhook is read:

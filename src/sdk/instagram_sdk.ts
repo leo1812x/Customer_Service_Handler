@@ -1,14 +1,20 @@
 import { fetch } from 'bun';
-import { QuickLogger } from './logging';
+import { QuickLogger } from '../logging';
 
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN!;
 const IG_ID = "17841470666117265" //gotten by getting fetchInstagramData(ACCESS_TOKEN.user_id);
 const PERSONAL_IGSID = "536785206002018"; 
 
-let logger = new QuickLogger("level_2");
+let logger = new QuickLogger("instagram_sdk");
 
 //#region SETUP
 
+/**
+ * Fetches Instagram user data using the provided access token.
+ * @param {string} access_token - The access token for authenticating the request to the Instagram Graph API.
+ * @returns {Promise<any>} A promise that resolves to the Instagram user data.
+ * @throws Will throw an error if the fetch request fails or the response is not ok.
+ */
 async function fetch_instagram_data(access_token: string) {
     const url = `https://graph.instagram.com/v21.0/me?fields=user_id,username,name,account_type,followers_count,follows_count,media_count&access_token=${access_token}`;
 
@@ -22,15 +28,13 @@ async function fetch_instagram_data(access_token: string) {
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk(data);
         return data;
     } catch (error) {
         console.error('Failed to fetch Instagram user data:', error);
         throw error;
     }
 }
-
-// fetchInstagramData(ACCESS_TOKEN);
 
 async function fetch_instagram_media(access_token:string, IG_ID:string) {
     const url = `https://graph.instagram.com/v21.0/${IG_ID}/media?access_token=${access_token}`;
@@ -45,15 +49,13 @@ async function fetch_instagram_media(access_token:string, IG_ID:string) {
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk(data);
         return data;
     } catch (error) {
         console.error('Failed to fetch Instagram media:', error);
         throw error;
     }
 }
-
-// fetchInstagramMedia(ACCESS_TOKEN, IG_ID);
 
 //*SET UP WEBHOOKS
 /**
@@ -76,7 +78,7 @@ async function subscribe_instagram_fields(access_token:string, ig_id:string) {
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk(data);
         return data;
     } catch (error) {
         console.error('Failed to subscribe to Instagram fields:', error);
@@ -122,7 +124,7 @@ async function send_instagram_message(my_ig_id:string, text:string, recipient_IG
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk("message sent");
         return data;
     } catch (error) {
         console.error('Failed to send Instagram message:', error);
@@ -218,7 +220,7 @@ async function fetch_instagram_messages(access_token: string, conversation_id: s
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk(data);
         return data;
     } catch (error) {
         console.error('Failed to fetch Instagram conversation messages:', error);
@@ -239,7 +241,7 @@ async function fetch_instagram_last_messageID(access_token: string, conversation
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk(data);
         return data.messages.data[0].id;
     } catch (error) {
         console.error('Failed to fetch Instagram last message:', error);
@@ -265,7 +267,7 @@ async function fetch_instagram_message_details(access_token: string, message_id:
         }
 
         const data = await response.json();
-        logger.level_1(data);
+        logger.instagram_sdk(data);
         return data;
     } catch (error) {
         console.error('Failed to fetch Instagram message details:', error);
@@ -282,9 +284,7 @@ async function fetch_instagram_message_details(access_token: string, message_id:
 //#region CLASSES   
 
 export class Insta_bot{
-    constructor() {
-
-    }
+    constructor() {}
 
     answer(recipient_id: string, message:string){
         send_instagram_message(IG_ID, message, recipient_id);

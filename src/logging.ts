@@ -1,13 +1,15 @@
 import chalk from "chalk";
 
-type LogLevel = "level_1" | "level_2" | "level_3" | "testing" | "server";
+const Opciones = ["openAI_sdk", "twilio_sdk", "instagram_sdk", "insta_handler", "twilio_handler", "testing", "server"] as const;
+
+type LogLevel = typeof Opciones[number];
 
 export class QuickLogger {
     /**
      * Creates an instance of the logging class.
-     * @param level - The logging level, defaults to "level_1".
+     * @param level - The logging level, defaults to "insta_handler".
      */
-    constructor(private level: LogLevel = "level_1") {}
+    constructor(private level: LogLevel = "insta_handler") {}
 
     /**
      * Returns a function that applies a color to a message string based on the provided log level.
@@ -16,14 +18,18 @@ export class QuickLogger {
      */
     private getColor(level: LogLevel): (msg: string) => string {
         switch (level) {
-            case "level_1":
+            case "openAI_sdk":
                 return chalk.gray;
-            case "level_2":
+            case "twilio_sdk":
                 return chalk.blue;
-            case "level_3":
+            case "instagram_sdk":
                 return chalk.yellow;
-            case "testing":
+            case "insta_handler":
                 return chalk.red;
+            case "twilio_handler":
+                return chalk.bgGray;
+            case "testing":
+                return chalk.bgGray;
             case "server":
                 return chalk.bgGray;
             default:
@@ -37,7 +43,7 @@ export class QuickLogger {
      * @param message - The message to log.
      */
     private logMessage(level: LogLevel, message: string): void {
-        const levels: LogLevel[] = ["level_1", "level_2", "level_3", "testing", "server"];
+        const levels: LogLevel[] = ["openAI_sdk", "twilio_sdk", "instagram_sdk", "insta_handler", "twilio_handler", "testing", "server"];
         if (levels.indexOf(level) >= levels.indexOf(this.level)) {
             const colorFn = this.getColor(level);
             const timestamp = new Date().toISOString();
@@ -45,16 +51,24 @@ export class QuickLogger {
         }
     }
 
-    level_1(...args: any[]) {
-        this.logMessage("level_1", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
+    openAI_sdk(...args: any[]) {
+        this.logMessage("openAI_sdk", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
     }
 
-    level_2(...args: any[]) {
-        this.logMessage("level_2", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
+    twilio_sdk(...args: any[]) {
+        this.logMessage("twilio_sdk", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
     }
 
-    level_3(...args: any[]) {
-        this.logMessage("level_3", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
+    instagram_sdk(...args: any[]) {
+        this.logMessage("instagram_sdk", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
+    }
+
+    insta_handler(...args: any[]) {
+        this.logMessage("insta_handler", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
+    }
+
+    twilio_handler(...args: any[]) {
+        this.logMessage("twilio_handler", args.map(arg => (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg)).join(" "));
     }
 
     testing(...args: any[]) {
@@ -67,9 +81,9 @@ export class QuickLogger {
 }
 
 //* Usage Example
-// const logger = new QuickLogger("level_1");
-// logger.level_1("This is a", "level_1 message.");
-// logger.level_2("This is an", "level_2 message.");
-// logger.level_3("This is a", "level_3 message.");
+// const logger = new QuickLogger("insta_handler");
+// logger.insta_handler("This is a", "insta_handler message.");
+// logger.twilio_handler("This is an", "twilio_handler message.");
+// logger.openAI_sdk("This is a", "openAI_sdk message.");
 // logger.testing("This is a", "testing message.");
 // logger.server("This is a", "server message.");

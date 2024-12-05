@@ -46,17 +46,11 @@ async function return_name_stored(password_1: string, password_2: string): Promi
  * Creates an assistant using OpenAI's beta API.
  * @returns {Promise<OpenAI.Beta.Assistant>} the created assistant.
  */
-async function create_asistant(): Promise<OpenAI.Beta.Assistant> {
+async function create_asistant(model:OpenAI.Chat.ChatModel, instructions: string, ...tools:OpenAI.Beta.Assistants.AssistantTool[] ): Promise<OpenAI.Beta.Assistant> {
     const assistant = await openai.beta.assistants.create({
-        model: "gpt-4o",
-        instructions:
-            "you are a bot that i am testing",
-        tools: [
-            {
-                type: "function",
-                function: return_name_stored_schema
-            },
-        ],
+        model: model,
+        instructions: instructions,
+        tools: tools,
     });
     logger.openAI_sdk("asistant created");
 
@@ -298,12 +292,17 @@ export class OpenAI_Asistant {
 
     constructor() { }
 
+
+    
     /**
      * Initializes the OpenAI assistant.
      * @returns {Promise<OpenAI.Beta.Assistants.Assistant>} A promise that resolves to an instance of the OpenAI assistant.
      */
-    async initialize(): Promise<OpenAI.Beta.Assistants.Assistant> {
-        let asistant = await create_asistant();
+    async initialize(model: OpenAI.Chat.ChatModel, instructions: string, ...tools: OpenAI.Beta.Assistants.AssistantTool[]): Promise<OpenAI.Beta.Assistants.Assistant> {
+
+
+        //*if assistant doesnt exist yet
+        let asistant = await create_asistant(model, instructions, ...tools);
         this.asistant = asistant;
         logger.openAI_sdk("OPENAI_asistant initialized");
         return asistant;

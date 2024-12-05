@@ -1,23 +1,24 @@
-import { serve } from 'bun';
+import { env, serve } from 'bun';
 import { QuickLogger } from './src/logging';
 import { Twilio_openAI } from './src/handlers/twilio_handler';
 import { Insta_openAI } from './src/handlers/insta_handler';
+import { test_company } from './src/assistants/companies';
 
 //* logger
 const logger = new QuickLogger("testing");
 
 //*INSTAGRAM ID
-const IG_ID = "17841470666117265"
+const IG_ID = process.env.IG_ID;
 
 //#region TESTING
 
 //* twilio
-let monster = new Twilio_openAI();
+// let monster = new Twilio_openAI();
 // await monster.initialize("+15046891609");
 // await monster.create_accessToken();
 
 //* instagram
-let insta_bot = new Insta_openAI();
+let insta_bot = new Insta_openAI(test_company);
 await insta_bot.initialize();
 
 
@@ -52,7 +53,7 @@ const server = serve({
 
 			//* if messageAdded
 			if  (data_object.EventType === "onMessageAdded"){
-				await monster.create_answer(data_object.Body);
+				// await monster.create_answer(data_object.Body);
 			}
 
 

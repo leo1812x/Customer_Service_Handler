@@ -1,6 +1,9 @@
+import type { AssistantTool } from "openai/resources/beta/assistants.mjs";
+import type { ChatModel } from "openai/resources/index.mjs";
 import { QuickLogger } from "../logging";
 import { Insta_bot } from "../sdk/instagram_sdk";
 import { OpenAI_Asistant } from "../sdk/openai_sdk";
+import { Company } from "../assistants/companies";
 
 const logger = new QuickLogger("insta_handler");
 
@@ -9,15 +12,17 @@ export class Insta_openAI{
 	private openai_assistant!:OpenAI_Asistant;
 	private insta_bot!:Insta_bot;
 	private dictionary!:{ [key: string]: string };
+	public company: Company;
 
 	/**
 	 * Creates an instance of the handler.
 	 * Initializes the Instagram bot, OpenAI assistant, and an empty dictionary.
 	 */
-	constructor(){
+	constructor(company: Company){
 		this.insta_bot = new Insta_bot();
 		this.openai_assistant = new OpenAI_Asistant();
 		this.dictionary = {};
+		this.company = company;
 	}
 
 	/**
@@ -29,7 +34,7 @@ export class Insta_openAI{
 	 * @requires await
 	 */
 	async initialize(){
-		await this.openai_assistant.initialize();
+		await this.openai_assistant.initialize(this.company.model, this.company.instructions, ...this.company.tools);
 		await this.fetch_dictionary();
 		logger.insta_handler("initialized");
 	}
@@ -48,6 +53,9 @@ export class Insta_openAI{
 
 		//*check if there is a thread for the user
 		if (this.dictionary[sender_id]){
+
+			//*if the thread corresponds to the right company
+			
 
 			//*add messsage to thread
 			await this.openai_assistant.add_message(thread_id, message);

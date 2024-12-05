@@ -1,6 +1,7 @@
 import { QuickLogger } from "../logging";
 import { OpenAI_Asistant } from "../sdk/openai_sdk";
 import { Twilio_Conversation, type TwilioBot } from "../sdk/twilo_sdk";
+import { test_company } from "../assistants/companies";
 
 const logger = new QuickLogger("twilio_handler");
 
@@ -22,7 +23,7 @@ export class Twilio_openAI {
 
 		//* create openAI assistant and thread
 		this.openAI_assistant = new OpenAI_Asistant();
-		await this.openAI_assistant.initialize();
+		await this.openAI_assistant.initialize(test_company.model, test_company.instructions, ...test_company.tools);
 		await this.openAI_assistant.create_thread();
 		logger.twilio_handler("OPENAI ASISTANT CREATED");
 

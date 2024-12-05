@@ -1,14 +1,15 @@
-// #region SCHEMAS
-
 import OpenAI from "openai";
 import { QuickLogger } from "../logging";
+import { OpenAI_Asistant } from "../sdk/openai_sdk";
 
+//*openai
 const key = process.env.OPENAI_KEY;
 const openai = new OpenAI({ apiKey: key });
 
+//*loggger
 const logger = new QuickLogger("openAI_sdk");
 
-
+// #region SCHEMAS
 const return_name_stored_schema: OpenAI.FunctionDefinition = {
     name: "return_name_stored",
     description: "gets the stored name when passes the 2 right passwords",
@@ -41,53 +42,31 @@ async function return_name_stored(password_1: string, password_2: string): Promi
     return "wrong password";
 }
 
-// #region ASSISTANT
-/**
- * Creates an assistant using OpenAI's beta API.
- * @returns {Promise<OpenAI.Beta.Assistant>} the created assistant.
- */
-async function create_asistant(company: Company): Promise<OpenAI.Beta.Assistant> {
-    const assistant = await openai.beta.assistants.create({
-        model: company.model,
-        instructions:
-            company.instructions,
-        tools: [
-            {
-                type: "function",
-                function: return_name_stored_schema
-            },
-        ],
-    });
-    logger.openAI_sdk("asistant created");
-
-    return assistant;
+const tool:OpenAI.Beta.Assistants.AssistantTool = {
+    type: "function",
+    function: return_name_stored_schema
 }
 
-type Tool = {
-    type: OpenAI.Beta.FunctionTool
-    function: OpenAI.FunctionDefinition;
-};
 
 
+
+
+
+//#region CLASS
 export class Company {
-    public model: string;
+    public model: OpenAI.Chat.ChatModel;
     public instructions: string;
     public tools: OpenAI.Beta.Assistants.AssistantTool[];
 
-    constructor(model: string, instructions: string, ...tools: OpenAI.Beta.Assistants.AssistantTool[]) {
+    constructor(model: OpenAI.Chat.ChatModel, instructions: string, ...tools: OpenAI.Beta.Assistants.AssistantTool[]) {
         this.model = model;
         this.instructions = instructions;
         this.tools = tools;
     }
-
-    initialize(){
-
-    }
 }
 
-//#region testing area
-
-
+//#region TESTING
+export const test_company = new Company("gpt-4o", "you are a bot that i am testing", tool);
 
 
 
